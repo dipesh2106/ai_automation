@@ -1,0 +1,70 @@
+AI YouTube Automation Tool - How to Use
+======================================
+
+1) Start the application
+------------------------
+python -m app.main
+
+The app runs on: http://127.0.0.1:8000
+
+2) Open dashboard
+-----------------
+Open this URL in browser:
+http://127.0.0.1:8000/
+
+3) Create a video job
+---------------------
+curl -X POST http://127.0.0.1:8000/api/v1/jobs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "Success story of Elon Musk",
+    "language": "en",
+    "duration": "5_min",
+    "style": "motivational",
+    "auto_upload": true
+  }'
+
+You will get a JSON response containing `job_id`.
+
+4) Check job status
+-------------------
+curl http://127.0.0.1:8000/api/v1/jobs/<job_id>
+
+5) View generated artifacts
+---------------------------
+curl http://127.0.0.1:8000/api/v1/artifacts/<job_id>
+
+Generated files are in:
+data/artifacts/<job_id>/
+
+Files produced by the pipeline:
+- script.json
+- scenes.json
+- visuals/scene_*.txt
+- voiceover.txt
+- final_video.txt
+- thumbnail.svg
+
+6) Scheduling (auto-publish flow)
+---------------------------------
+Create a recurring schedule:
+
+curl -X POST http://127.0.0.1:8000/api/v1/schedules \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "Ancient mystery facts",
+    "language": "en",
+    "duration": "shorts",
+    "style": "facts",
+    "cron_minutes": 60,
+    "auto_upload": true
+  }'
+
+The scheduler checks due jobs every 10 seconds.
+
+7) Run tests
+------------
+python -m unittest tests/test_app.py
+
+Note:
+This implementation is functional in local mock mode and can be extended to real providers by replacing service implementations in `app/services/`.
