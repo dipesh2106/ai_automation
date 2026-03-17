@@ -42,13 +42,6 @@ class AppTest(unittest.TestCase):
             files = json.loads(resp.read().decode())
         self.assertGreaterEqual(len(files), 4)
 
-    def test_dashboard_ui_available(self):
-        with urlopen("http://127.0.0.1:8010/") as resp:
-            self.assertEqual(resp.status, 200)
-            html = resp.read().decode()
-        self.assertIn("Create Job", html)
-        self.assertIn("jobForm", html)
-
 
 if __name__ == "__main__":
     unittest.main()

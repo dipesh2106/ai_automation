@@ -1,6 +1,6 @@
 # AI YouTube Automation Tool (Functional End-to-End App)
 
-A working backend application with a minimal web UI that automates the complete YouTube content pipeline:
+A working backend application that automates the complete YouTube content pipeline:
 
 1. Input topic/style/language/duration
 2. Script generation
@@ -29,7 +29,6 @@ python -m app.main
 Open:
 - Dashboard: `http://127.0.0.1:8000/`
 - API base: `http://127.0.0.1:8000/api/v1`
-- UI form: Create jobs directly from dashboard
 
 ## Test
 

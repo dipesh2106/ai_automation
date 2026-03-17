@@ -12,8 +12,6 @@ The app runs on: http://127.0.0.1:8000
 Open this URL in browser:
 http://127.0.0.1:8000/
 
-From the UI, fill the Create Job form and click "Start Pipeline" to process request directly from the application.
-
 3) Create a video job
 ---------------------
 curl -X POST http://127.0.0.1:8000/api/v1/jobs \

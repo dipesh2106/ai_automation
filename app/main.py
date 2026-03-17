@@ -10,8 +10,6 @@ from uuid import uuid4
 from app import db
 from app.pipeline import engine
 
-TEMPLATE_PATH = Path(__file__).resolve().parent / "templates" / "dashboard.html"
-
 
 class AppHandler(BaseHTTPRequestHandler):
     def _send(self, code: int, body, content_type: str = "application/json") -> None:
@@ -30,10 +28,7 @@ class AppHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/":
-            if not TEMPLATE_PATH.exists():
-                return self._send(500, {"error": "Dashboard template missing"})
-            html = TEMPLATE_PATH.read_text(encoding="utf-8")
-            return self._send(200, html, "text/html; charset=utf-8")
+            return self._send(200, _dashboard_html(), "text/html; charset=utf-8")
         if path == "/api/v1/jobs":
             return self._send(200, db.list_jobs())
         if path == "/api/v1/schedules":
@@ -123,6 +118,23 @@ class AppHandler(BaseHTTPRequestHandler):
             return self._send(200, {"deleted": True}) if ok else self._send(404, {"error": "Schedule not found"})
         self._send(404, {"error": "Not found"})
 
+
+def _dashboard_html() -> str:
+    jobs = db.list_jobs()[:20]
+    rows = "".join(
+        f"<tr><td>{j['job_id']}</td><td>{j['topic']}</td><td>{j['status']}</td><td>{j['current_step']}</td></tr>" for j in jobs
+    )
+    return f"""
+    <html><head><title>AI YouTube Automation</title></head>
+    <body style='font-family:Arial;background:#111;color:#eee'>
+      <h1>AI YouTube Automation Tool</h1>
+      <p>Use API endpoints to create jobs and schedules.</p>
+      <table border='1' cellpadding='6' cellspacing='0'>
+        <tr><th>Job ID</th><th>Topic</th><th>Status</th><th>Current Step</th></tr>
+        {rows}
+      </table>
+    </body></html>
+    """
 
 
 def run(host: str = "127.0.0.1", port: int = 8000) -> None:
