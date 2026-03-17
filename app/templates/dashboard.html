@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI YouTube Automation Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #1e293b; border-radius: 10px; padding: 16px; }
+    h1, h2 { margin-top: 0; }
+    label { display: block; margin-bottom: 8px; font-size: 14px; }
+    input, select, button, textarea { width: 100%; padding: 8px; margin-top: 4px; border-radius: 6px; border: 1px solid #475569; background: #0b1220; color: #e2e8f0; }
+    button { cursor: pointer; background: #2563eb; border-color: #2563eb; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #334155; padding: 8px; text-align: left; font-size: 13px; }
+    th { background: #334155; }
+    .muted { color: #94a3b8; font-size: 12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head>
+<body>
+  <h1>AI YouTube Automation Tool</h1>
+  <p class="muted">Create jobs from UI, track progress, and inspect generated artifacts.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Create Job</h2>
+      <form id="jobForm">
+        <label>Topic
+          <input id="topic" required value="Success story of Elon Musk" />
+        </label>
+
+        <label>Language
+          <select id="language">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+          </select>
+        </label>
+
+        <label>Duration
+          <select id="duration">
+            <option value="shorts">Shorts</option>
+            <option value="5_min" selected>5 min</option>
+            <option value="10_min">10 min</option>
+          </select>
+        </label>
+
+        <label>Style
+          <select id="style">
+            <option value="story">Story</option>
+            <option value="motivational" selected>Motivational</option>
+            <option value="facts">Facts</option>
+            <option value="horror">Horror</option>
+          </select>
+        </label>
+
+        <label>Auto Upload
+          <select id="auto_upload">
+            <option value="true" selected>true</option>
+            <option value="false">false</option>
+          </select>
+        </label>
+
+        <button type="submit">Start Pipeline</button>
+      </form>
+      <p id="createMsg" class="muted"></p>
+    </div>
+
+    <div class="card">
+      <h2>Selected Job</h2>
+      <label>Job ID
+        <input id="jobIdLookup" placeholder="Paste job id and click Load" />
+      </label>
+      <button id="loadJobBtn" type="button">Load Job</button>
+      <pre id="jobOutput" class="mono" style="white-space: pre-wrap; margin-top: 10px; max-height: 360px; overflow:auto;"></pre>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 16px;">
+    <h2>Recent Jobs</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Job ID</th>
+          <th>Topic</th>
+          <th>Status</th>
+          <th>Current Step</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="jobsBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const jobsBody = document.getElementById('jobsBody');
+    const createMsg = document.getElementById('createMsg');
+    const jobOutput = document.getElementById('jobOutput');
+    const lookup = document.getElementById('jobIdLookup');
+
+    async function loadJobs() {
+      const res = await fetch('/api/v1/jobs');
+      const jobs = await res.json();
+      jobsBody.innerHTML = '';
+      jobs.slice(0, 20).forEach(j => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="mono">${j.job_id}</td>
+          <td>${j.topic || ''}</td>
+          <td>${j.status || ''}</td>
+          <td>${j.current_step || ''}</td>
+          <td><button data-id="${j.job_id}" class="inspectBtn" type="button">Inspect</button></td>
+        `;
+        jobsBody.appendChild(tr);
+      });
+      document.querySelectorAll('.inspectBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          lookup.value = id;
+          await loadJob(id);
+        });
+      });
+    }
+
+    async function loadJob(jobId) {
+      if (!jobId) return;
+      const [jobRes, artifactRes] = await Promise.all([
+        fetch(`/api/v1/jobs/${jobId}`),
+        fetch(`/api/v1/artifacts/${jobId}`)
+      ]);
+      const job = await jobRes.json();
+      const artifacts = artifactRes.ok ? await artifactRes.json() : [];
+      jobOutput.textContent = JSON.stringify({ job, artifacts }, null, 2);
+    }
+
+    document.getElementById('jobForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        topic: document.getElementById('topic').value,
+        language: document.getElementById('language').value,
+        duration: document.getElementById('duration').value,
+        style: document.getElementById('style').value,
+        auto_upload: document.getElementById('auto_upload').value === 'true'
+      };
+      const res = await fetch('/api/v1/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        createMsg.textContent = `Job created: ${data.job_id}`;
+        lookup.value = data.job_id;
+        await loadJob(data.job_id);
+        await loadJobs();
+      } else {
+        createMsg.textContent = `Error: ${data.error || 'Unknown error'}`;
+      }
+    });
+
+    document.getElementById('loadJobBtn').addEventListener('click', async () => {
+      await loadJob(lookup.value.trim());
+    });
+
+    loadJobs();
+    setInterval(loadJobs, 4000);
+  </script>
+</body>
+</html>
